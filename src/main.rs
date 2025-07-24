@@ -1,5 +1,6 @@
 use axum::{Router, routing::get};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 mod dtos;
 mod handlers;
@@ -27,6 +28,9 @@ async fn main() {
         .merge(routes::users::user_routes())
         .with_state(state.clone());
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+        .await
+        .expect("Failed to create listener");
+
     axum::serve(listener, app).await.unwrap();
 }

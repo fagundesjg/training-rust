@@ -11,7 +11,7 @@ pub async fn create(
     State(state): State<AppState>,
     Json(payload): Json<CreateUser>,
 ) -> (StatusCode, Json<User>) {
-    let mut counter = state.user.counter.lock().unwrap();
+    let mut counter = state.user.counter.lock().await;
     let id = *counter;
     *counter += 1;
 
@@ -22,13 +22,13 @@ pub async fn create(
         gender: payload.gender,
     };
 
-    state.user.users.lock().unwrap().push(user.clone());
+    state.user.users.lock().await.push(user.clone());
 
     (StatusCode::CREATED, Json(user))
 }
 
 pub async fn get_all(State(state): State<AppState>) -> (StatusCode, Json<Vec<User>>) {
-    let users = state.user.users.lock().unwrap();
+    let users = state.user.users.lock().await;
     (StatusCode::OK, Json(users.clone()))
 }
 
@@ -36,7 +36,7 @@ pub async fn get_one(
     Path(id): Path<u64>,
     State(state): State<AppState>,
 ) -> (StatusCode, Json<Option<User>>) {
-    let users = state.user.users.lock().unwrap();
+    let users = state.user.users.lock().await;
 
     if let Some(user) = users.clone().into_iter().find(|u| u.id == id) {
         return (StatusCode::OK, Json(Some(user.clone())));
@@ -49,7 +49,7 @@ pub async fn remove(
     Path(id): Path<u64>,
     State(state): State<AppState>,
 ) -> (StatusCode, Json<Option<User>>) {
-    let mut users = state.user.users.lock().unwrap();
+    let mut users = state.user.users.lock().await;
 
     if let Some(index) = users.iter().position(|u| u.id == id) {
         let removed = users.remove(index);
@@ -64,7 +64,7 @@ pub async fn update(
     Path(id): Path<u64>,
     Json(payload): Json<UpdateUser>,
 ) -> (StatusCode, Json<Option<User>>) {
-    let mut users = state.user.users.lock().unwrap();
+    let mut users = state.user.users.lock().await;
 
     if let Some(user) = users.iter_mut().find(|u| u.id == id) {
         user.update_with(payload);
