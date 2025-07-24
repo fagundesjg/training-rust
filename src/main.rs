@@ -1,7 +1,9 @@
 use axum::{Router, routing::get};
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use dotenvy::dotenv;
+use sqlx::sqlite::SqlitePoolOptions;
+use std::env;
 
+mod db;
 mod dtos;
 mod handlers;
 mod models;
@@ -16,12 +18,16 @@ async fn root() -> &'static str {
 
 #[tokio::main]
 async fn main() {
-    let state = AppState {
-        user: state::app::UserState {
-            users: Arc::new(Mutex::new(vec![])),
-            counter: Arc::new(Mutex::new(1)),
-        },
-    };
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL não definido");
+
+    let db = SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await
+        .expect("Falha ao conectar no banco");
+
+    let state = AppState { db };
 
     let app = Router::new()
         .route("/", get(root))

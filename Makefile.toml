@@ -1,0 +1,22 @@
+[tasks.start]
+command = "cargo"
+args = ["run"]
+
+[tasks.migrate_up]
+env_files = ["./.env"]
+command = "sqlx"
+args = ["migrate", "run"]
+
+[tasks.migrate_down]
+env_files = ["./.env"]
+command = "sqlx"
+args = ["migrate", "revert"]
+
+[tasks.dev]
+script = ["cargo make migrate", "cargo make start"]
+
+[tasks.migration_create]
+script = ['''
+  #!/bin/bash
+  sqlx migrate add -r "$@"
+  ''']

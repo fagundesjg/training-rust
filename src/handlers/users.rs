@@ -1,75 +1,64 @@
-use axum::extract::State;
-use axum::{Json, extract::Path, http::StatusCode};
-
-use crate::models::user::User;
 use crate::{
+    db::repositories::user::UserRepository,
     dtos::users::{CreateUser, UpdateUser},
+    models::user::User,
     state::app::AppState,
+};
+use axum::{
+    Json,
+    extract::{Path, State},
+    http::StatusCode,
 };
 
 pub async fn create(
     State(state): State<AppState>,
     Json(payload): Json<CreateUser>,
-) -> (StatusCode, Json<User>) {
-    let mut counter = state.user.counter.lock().await;
-    let id = *counter;
-    *counter += 1;
-
-    let user = User {
-        id,
-        name: payload.name,
-        birth_date: payload.birth_date,
-        gender: payload.gender,
-    };
-
-    state.user.users.lock().await.push(user.clone());
-
-    (StatusCode::CREATED, Json(user))
+) -> Result<(StatusCode, Json<User>), StatusCode> {
+    match UserRepository::create(&state.db, payload).await {
+        Ok(user) => Ok((StatusCode::CREATED, Json(user))),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
 
-pub async fn get_all(State(state): State<AppState>) -> (StatusCode, Json<Vec<User>>) {
-    let users = state.user.users.lock().await;
-    (StatusCode::OK, Json(users.clone()))
+pub async fn get_all(
+    State(state): State<AppState>,
+) -> Result<(StatusCode, Json<Vec<User>>), StatusCode> {
+    match UserRepository::find_all(&state.db).await {
+        Ok(users) => Ok((StatusCode::OK, Json(users))),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
 
 pub async fn get_one(
-    Path(id): Path<u64>,
+    Path(id): Path<String>,
     State(state): State<AppState>,
-) -> (StatusCode, Json<Option<User>>) {
-    let users = state.user.users.lock().await;
-
-    if let Some(user) = users.clone().into_iter().find(|u| u.id == id) {
-        return (StatusCode::OK, Json(Some(user.clone())));
+) -> Result<(StatusCode, Json<Option<User>>), StatusCode> {
+    match UserRepository::find_by_id(&state.db, &id).await {
+        Ok(Some(user)) => Ok((StatusCode::OK, Json(Some(user)))),
+        Ok(None) => Ok((StatusCode::NOT_FOUND, Json(None))),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
-
-    (StatusCode::NOT_FOUND, Json(None))
 }
 
 pub async fn remove(
-    Path(id): Path<u64>,
+    Path(id): Path<String>,
     State(state): State<AppState>,
-) -> (StatusCode, Json<Option<User>>) {
-    let mut users = state.user.users.lock().await;
-
-    if let Some(index) = users.iter().position(|u| u.id == id) {
-        let removed = users.remove(index);
-        return (StatusCode::OK, Json(Some(removed)));
+) -> Result<(StatusCode, Json<Option<User>>), StatusCode> {
+    match UserRepository::delete(&state.db, &id).await {
+        Ok(affected) if affected > 0 => Ok((StatusCode::OK, Json(None))),
+        Ok(_) => Ok((StatusCode::NOT_FOUND, Json(None))),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
-
-    (StatusCode::NOT_FOUND, Json(None))
 }
 
 pub async fn update(
+    Path(id): Path<String>,
     State(state): State<AppState>,
-    Path(id): Path<u64>,
     Json(payload): Json<UpdateUser>,
-) -> (StatusCode, Json<Option<User>>) {
-    let mut users = state.user.users.lock().await;
-
-    if let Some(user) = users.iter_mut().find(|u| u.id == id) {
-        user.update_with(payload);
-        return (StatusCode::OK, Json(Some(user.clone())));
+) -> Result<(StatusCode, Json<Option<User>>), StatusCode> {
+    match UserRepository::update(&state.db, &id, payload).await {
+        Ok(Some(user)) => Ok((StatusCode::OK, Json(Some(user)))),
+        Ok(None) => Ok((StatusCode::NOT_FOUND, Json(None))),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
-
-    (StatusCode::NOT_FOUND, Json(None))
 }

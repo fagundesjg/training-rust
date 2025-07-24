@@ -14,6 +14,7 @@ Este repositório contém um projeto de backend em Rust com o framework [Axum](h
 **Pré-requisitos:**
 
 - [Rust instalado](https://www.rust-lang.org/tools/install)
+- Sqlx-cli: `cargo install sqlx-cli --no-default-features --features sqlite`
 
 **Passos:**
 
@@ -42,7 +43,7 @@ A API ficará disponível por padrão em:
 - `handlers/` — lógica de negócio dos endpoints
 - `models/` — structs da aplicação (ex: User, Gender)
 - `dtos/` — structs de entrada (CreateUser, UpdateUser)
-- `state/` — definição de `AppState` e subestados como `UserState`
+- `state/` — definição de `AppState`
 
 ---
 
