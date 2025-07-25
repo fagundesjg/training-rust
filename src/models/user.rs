@@ -8,7 +8,7 @@ pub struct User {
     pub email: String,
     pub birth_date: String,
     pub gender: String,
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing, default)]
     pub password: String,
     pub created_at: NaiveDateTime,
     pub updated_at: Option<NaiveDateTime>,

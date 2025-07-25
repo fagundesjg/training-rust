@@ -1,12 +1,7 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct CreateAuth {
     pub email: String,
     pub password: String,
-}
-
-#[derive(Serialize)]
-pub struct CreatedAuth {
-    pub token: String,
 }

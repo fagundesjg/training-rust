@@ -1,11 +1,11 @@
 use axum::{Router, middleware::from_fn, routing::get};
+use axum_cookie::CookieLayer;
 use dotenvy::dotenv;
-use sqlx::sqlite::SqlitePoolOptions;
-use std::env;
 use tracing_subscriber::fmt::format::FmtSpan;
 
 mod db;
 mod dtos;
+mod extractors;
 mod handlers;
 mod middlewares;
 mod models;
@@ -13,9 +13,7 @@ mod routes;
 mod state;
 mod utils;
 
-use state::app::AppState;
-
-use crate::middlewares::logging::logging;
+use crate::{middlewares::logging::logging, state::app::init_app_state};
 
 async fn root() -> &'static str {
     "Hello, World!"
@@ -31,22 +29,15 @@ async fn main() {
         .compact()
         .init();
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL não definido");
-
-    let db = SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
-        .expect("Falha ao conectar no banco");
-
-    let state = AppState { db };
+    let state = init_app_state().await;
 
     let app = Router::new()
         .route("/", get(root))
         .merge(routes::users::routes())
         .merge(routes::auth::routes())
         .with_state(state.clone())
-        .layer(from_fn(logging));
+        .layer(from_fn(logging))
+        .layer(CookieLayer::default());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await

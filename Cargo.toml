@@ -19,6 +19,10 @@ dotenvy = "0.15"
 argon2 = { version = "0.5.3" }
 tracing = "0.1"
 tracing-subscriber = "0.3"
+uuid = { version = "1.17.0", features = ["v4"] }
+axum-cookie = { version = "0.2.3" }
+redis = { version = "0.25", features = ["tokio-comp"] }
+serde_json = "1.0"
 
 [dev-dependencies]
 cargo-make = { version = "0.37.24" }
