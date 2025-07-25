@@ -3,6 +3,7 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 pub struct CreateUser {
     pub name: String,
+    pub email: String,
     pub birth_date: String,
     pub gender: String,
     pub password: String,

@@ -1,6 +1,7 @@
 CREATE TABLE users (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
   birth_date TEXT NOT NULL,
   gender TEXT NOT NULL CHECK (gender IN ('male', 'female', 'other')),
   password TEXT NOT NULL,

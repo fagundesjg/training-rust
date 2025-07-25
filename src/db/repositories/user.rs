@@ -1,16 +1,30 @@
 use crate::dtos::users::{CreateUser, UpdateUser};
 use crate::models::user::User;
-use chrono::Utc;
+use chrono::{Timelike, Utc};
 use cuid2;
 use sqlx::{Result, SqlitePool};
 
 pub struct UserRepository;
 
+pub enum UserField {
+    Id,
+    Email,
+}
+
+impl UserField {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Id => "id",
+            Self::Email => "email",
+        }
+    }
+}
+
 impl UserRepository {
     pub async fn find_all(pool: &SqlitePool) -> Result<Vec<User>> {
         sqlx::query_as::<_, User>(
             r#"
-                SELECT id, name, birth_date, gender, password, created_at, updated_at
+                SELECT id, name, email, birth_date, gender, password, created_at, updated_at
                 FROM users
                 ORDER BY created_at DESC
                 "#,
@@ -19,30 +33,34 @@ impl UserRepository {
         .await
     }
 
-    pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<User>> {
-        sqlx::query_as::<_, User>(
+    pub async fn find_by(pool: &SqlitePool, field: UserField, value: &str) -> Result<Option<User>> {
+        let query = format!(
             r#"
-            SELECT id, name, birth_date, gender, password, created_at, updated_at
-            FROM users
-            WHERE id = ?
-            "#,
-        )
-        .bind(id)
-        .fetch_optional(pool)
-        .await
+        SELECT id, name, email, birth_date, gender, password, created_at, updated_at
+        FROM users
+        WHERE {} = ?
+        "#,
+            field.as_str()
+        );
+
+        sqlx::query_as::<_, User>(&query)
+            .bind(value)
+            .fetch_optional(pool)
+            .await
     }
 
     pub async fn create(pool: &SqlitePool, data: CreateUser) -> Result<User> {
         let cuid = cuid2::create_id();
-        let now = Utc::now().naive_utc();
+        let now = Utc::now().naive_utc().with_nanosecond(0).unwrap();
 
         sqlx::query!(
             r#"
-            INSERT INTO users (id, name, birth_date, gender, password, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO users (id, name, email, birth_date, gender, password, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             "#,
             cuid,
             data.name,
+            data.email,
             data.birth_date,
             data.gender,
             data.password,
@@ -51,7 +69,9 @@ impl UserRepository {
         .execute(pool)
         .await?;
 
-        Self::find_by_id(pool, &cuid).await.map(|u| u.unwrap())
+        Self::find_by(pool, UserField::Id, &cuid)
+            .await
+            .map(|u| u.unwrap())
     }
 
     pub async fn update(pool: &SqlitePool, id: &str, payload: UpdateUser) -> Result<Option<User>> {
@@ -78,7 +98,7 @@ impl UserRepository {
             return Ok(None);
         }
 
-        let updated = UserRepository::find_by_id(pool, id).await?;
+        let updated = UserRepository::find_by(pool, UserField::Id, id).await?;
         Ok(updated)
     }
 

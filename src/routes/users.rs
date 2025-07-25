@@ -7,7 +7,7 @@ use axum::{
     routing::{delete, get, post, put},
 };
 
-pub fn user_routes() -> Router<AppState> {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/users", get(get_all))
         .route("/users/{id}", get(get_one))

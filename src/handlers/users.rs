@@ -1,9 +1,11 @@
 use crate::{
-    db::repositories::user::UserRepository,
+    db::repositories::user::{UserField, UserRepository},
     dtos::users::{CreateUser, UpdateUser},
     models::user::User,
     state::app::AppState,
+    utils::password::hash_password,
 };
+
 use axum::{
     Json,
     extract::{Path, State},
@@ -12,8 +14,10 @@ use axum::{
 
 pub async fn create(
     State(state): State<AppState>,
-    Json(payload): Json<CreateUser>,
+    Json(mut payload): Json<CreateUser>,
 ) -> Result<(StatusCode, Json<User>), StatusCode> {
+    payload.password = hash_password(&payload.password).unwrap();
+
     match UserRepository::create(&state.db, payload).await {
         Ok(user) => Ok((StatusCode::CREATED, Json(user))),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -33,7 +37,7 @@ pub async fn get_one(
     Path(id): Path<String>,
     State(state): State<AppState>,
 ) -> Result<(StatusCode, Json<Option<User>>), StatusCode> {
-    match UserRepository::find_by_id(&state.db, &id).await {
+    match UserRepository::find_by(&state.db, UserField::Id, &id).await {
         Ok(Some(user)) => Ok((StatusCode::OK, Json(Some(user)))),
         Ok(None) => Ok((StatusCode::NOT_FOUND, Json(None))),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
